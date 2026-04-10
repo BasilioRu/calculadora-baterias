@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora banco de baterías</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --bg3:     #1c2230;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text:    #cdd9e5;
+  --muted:   #768390;
+  --dim:     #444c56;
+  --accent:  #39d353;
+  --accent2: #58a6ff;
+  --amber:   #e3b341;
+  --red:     #f85149;
+  --mono:    'DM Mono', monospace;
+  --sans:    'Syne', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:15px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+
+/* Header */
+.header{border-bottom:1px solid var(--border);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.header-left{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;}
+.header-title{font-size:20px;font-weight:800;letter-spacing:-0.02em;color:#fff;}
+.header-sub{font-size:12px;color:var(--muted);font-family:var(--mono);}
+.header-right{display:flex;gap:8px;}
+
+/* Botones */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:1px solid var(--border2);font-size:12px;font-family:var(--mono);cursor:pointer;background:transparent;color:var(--muted);transition:all 0.15s;text-decoration:none;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(57,211,83,0.06);}
+.btn-pdf:hover{border-color:var(--accent2);color:var(--accent2);background:rgba(88,166,255,0.06);}
+.btn svg{width:13px;height:13px;fill:currentColor;}
+
+/* Mode tabs */
+.mode-bar{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);}
+.mode-tab{flex:1;padding:12px 20px;font-size:12px;font-family:var(--mono);cursor:pointer;background:transparent;border:none;color:var(--muted);border-bottom:2px solid transparent;transition:all 0.15s;text-align:center;letter-spacing:0.02em;}
+.mode-tab.active{color:#fff;border-bottom-color:var(--accent);}
+.mode-tab:hover:not(.active){color:var(--text);}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 109px);}
+.sidebar{border-right:1px solid var(--border);padding:24px 22px;display:flex;flex-direction:column;gap:24px;}
+.main{padding:24px 28px;display:flex;flex-direction:column;gap:16px;}
+
+/* Panel modo */
+.panel{display:none;}
+.panel.active{display:flex;flex-direction:column;gap:16px;}
+
+/* Chemistry */
+.chem-label{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:var(--mono);}
+.chem-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.chem-tab{padding:5px 12px;border-radius:6px;border:1px solid var(--border2);font-size:11px;font-family:var(--mono);cursor:pointer;background:transparent;color:var(--muted);transition:all 0.15s;}
+.chem-tab:hover{border-color:var(--accent);color:var(--text);}
+.chem-tab.active{background:rgba(57,211,83,0.1);border-color:rgba(57,211,83,0.4);color:var(--accent);}
+.chem-tab.nmc.active{background:rgba(88,166,255,0.1);border-color:rgba(88,166,255,0.4);color:var(--accent2);}
+.chem-tab.gel.active{background:rgba(227,179,65,0.1);border-color:rgba(227,179,65,0.4);color:var(--amber);}
+
+/* Sliders */
+.input-group{display:flex;flex-direction:column;gap:16px;}
+.slider-item{display:flex;flex-direction:column;gap:7px;}
+.slider-header{display:flex;justify-content:space-between;align-items:baseline;}
+.slider-name{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:0.02em;}
+.slider-value{font-size:16px;font-weight:700;color:#fff;font-family:var(--mono);}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--bg3);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;transition:transform 0.1s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3);}
+input[type=range].nmc::-webkit-slider-thumb{background:var(--accent2);}
+input[type=range].gel::-webkit-slider-thumb{background:var(--amber);}
+input[type=range].inv::-webkit-slider-thumb{background:var(--accent2);}
+.slider-minmax{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);font-family:var(--mono);}
+
+/* Result hero */
+.result-hero{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:20px;position:relative;overflow:hidden;}
+.result-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);transition:background 0.3s;}
+.result-hero.nmc::before{background:var(--accent2);}
+.result-hero.gel::before{background:var(--amber);}
+.result-hero.inv::before{background:var(--accent2);}
+.result-big{font-size:48px;font-weight:800;color:var(--accent);font-family:var(--mono);line-height:1;transition:color 0.3s;letter-spacing:-0.03em;}
+.result-big.nmc{color:var(--accent2);}
+.result-big.gel{color:var(--amber);}
+.result-big.inv{color:var(--accent2);}
+.result-meta{flex:1;}
+.result-meta-title{font-size:13px;color:var(--muted);margin-bottom:4px;}
+.result-meta-sub{font-size:11px;color:var(--dim);font-family:var(--mono);line-height:1.7;}
+
+/* Steps */
+.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.step-n{font-size:10px;font-family:var(--mono);color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;}
+.step-title{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4;}
+.step-formula{font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--bg3);border-radius:5px;padding:6px 9px;margin-bottom:7px;line-height:1.7;}
+.step-result{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--accent);transition:color 0.3s;}
+.step-result.nmc{color:var(--accent2);}
+.step-result.gel{color:var(--amber);}
+.step-result.inv{color:var(--accent2);}
+
+/* Config table */
+.config-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.config-card-header{padding:10px 16px;border-bottom:1px solid var(--border);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);}
+.config-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;}
+.config-row:last-child{border-bottom:none;}
+.config-row.hl{background:rgba(57,211,83,0.04);}
+.config-row.hl.nmc{background:rgba(88,166,255,0.04);}
+.config-row.hl.gel{background:rgba(227,179,65,0.04);}
+.config-row.hl.inv{background:rgba(88,166,255,0.04);}
+.ck{color:var(--muted);font-size:11px;}
+.cv{font-family:var(--mono);font-size:12px;font-weight:500;color:#fff;}
+.badge{display:inline-block;margin-left:7px;font-size:10px;padding:1px 6px;border-radius:3px;font-weight:500;vertical-align:middle;}
+.badge-g{background:rgba(57,211,83,0.15);color:var(--accent);}
+.badge-b{background:rgba(88,166,255,0.15);color:var(--accent2);}
+.badge-a{background:rgba(227,179,65,0.15);color:var(--amber);}
+.badge-r{background:rgba(248,81,73,0.15);color:var(--red);}
+
+/* Compare bars */
+.compare-strip{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.compare-title{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:12px;}
+.compare-bars{display:flex;flex-direction:column;gap:9px;}
+.bar-row{display:flex;align-items:center;gap:9px;}
+.bar-label{font-size:11px;font-family:var(--mono);color:var(--muted);width:34px;}
+.bar-track{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.4s ease;}
+.bar-lfp{background:var(--accent);}
+.bar-nmc{background:var(--accent2);}
+.bar-gel{background:var(--amber);}
+.bar-val{font-size:11px;font-family:var(--mono);color:var(--text);width:65px;text-align:right;}
+
+/* Alert */
+.alert{border-radius:7px;padding:9px 13px;font-size:11px;font-family:var(--mono);line-height:1.5;border:1px solid;}
+.alert-warn{background:rgba(227,179,65,0.08);border-color:rgba(227,179,65,0.25);color:var(--amber);}
+.alert-info{background:rgba(57,211,83,0.07);border-color:rgba(57,211,83,0.2);color:var(--accent);}
+.alert-blue{background:rgba(88,166,255,0.07);border-color:rgba(88,166,255,0.2);color:var(--accent2);}
+
+/* Autonomy gauge */
+.gauge-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;}
+.gauge-title{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:16px;}
+.gauge-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.gauge-name{font-size:11px;font-family:var(--mono);color:var(--muted);width:70px;}
+.gauge-track{flex:1;height:10px;background:var(--bg3);border-radius:5px;overflow:hidden;}
+.gauge-fill{height:100%;border-radius:5px;transition:width 0.5s ease;}
+.gauge-val{font-size:13px;font-family:var(--mono);font-weight:500;width:55px;text-align:right;}
+
+/* Footer */
+.footer{border-top:1px solid var(--border);padding:12px 32px;font-size:10px;color:var(--dim);font-family:var(--mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+
+/* Print / PDF */
+@media print{
+  body{background:#fff;color:#000;}
+  .header{background:#fff;border-bottom:1px solid #ddd;padding:16px 24px;}
+  .header-title{color:#000;}
+  .header-right,.mode-bar,.footer{display:none;}
+  .layout{display:block;}
+  .sidebar{border:none;padding:0 24px;page-break-inside:avoid;}
+  .main{padding:0 24px;}
+  .bg2,.config-card,.step-card,.compare-strip,.gauge-wrap,.result-hero{background:#f8f9fa!important;border:1px solid #ddd!important;color:#000!important;}
+  .slider-item input{display:none;}
+  .slider-value,.result-big,.step-result,.cv,.bar-val,.gauge-val{color:#000!important;}
+  .slider-name,.step-n,.step-title,.ck,.muted,.compare-title,.gauge-title,.config-card-header,.chem-label{color:#555!important;}
+  .step-formula{background:#eee!important;color:#333!important;}
+  .bar-track,.gauge-track{background:#ddd!important;}
+  .result-hero::before{background:#000!important;}
+  .alert{border:1px solid #bbb!important;background:#f5f5f5!important;color:#333!important;}
+  .panel{display:flex!important;flex-direction:column;gap:12px;}
+  .panel:not(.active){display:none!important;}
+  .steps-grid{grid-template-columns:1fr 1fr;}
+  h1,h2{page-break-after:avoid;}
+  .config-card,.result-hero,.steps-grid,.compare-strip{page-break-inside:avoid;}
+  .mode-tab{display:none;}
+  .print-mode-label{display:block!important;font-size:13px;font-weight:700;color:#000;margin-bottom:8px;padding:8px 0;border-bottom:1px solid #ddd;}
+}
+.print-mode-label{display:none;}
+
+@media(max-width:800px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{border-right:none;border-bottom:1px solid var(--border);}
+  .steps-grid{grid-template-columns:1fr;}
+  .main{padding:16px;}
+  .result-big{font-size:36px;}
+  .header{padding:14px 16px;}
+  .footer{padding:10px 16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <span class="header-title">Calculadora banco de baterías</span>
+    <span class="header-sub">dimensionamiento energético</span>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-pdf" onclick="exportPDF()">
+      <svg viewBox="0 0 16 16"><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/><path d="M4.603 12.087a.81.81 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.68 7.68 0 0 1 1.482-.645 19.697 19.697 0 0 0 1.062-2.227 7.269 7.269 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a10.954 10.954 0 0 0 .98 1.686 5.753 5.753 0 0 1 1.334.05c.364.065.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.856.856 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.712 5.712 0 0 1-.911-.95 11.651 11.651 0 0 0-1.997.406 11.307 11.307 0 0 1-1.02 1.51c-.292.35-.609.656-.927.787a.793.793 0 0 1-.58.029zm1.379-1.901c-.166.076-.32.156-.459.238-.328.194-.541.383-.647.547-.105.163-.115.295-.051.42.07.138.169.224.296.256.127.031.27-.012.432-.084.258-.11.537-.363.786-.67.198-.24.39-.51.558-.794a7.553 7.553 0 0 0-.915.087zm3.374-.123c.201.093.393.166.563.204.17.038.316.04.419-.005a.302.302 0 0 0 .124-.132.38.38 0 0 0 .046-.19.21.21 0 0 0-.063-.156c-.074-.082-.22-.144-.432-.178a3.894 3.894 0 0 0-.808-.02 4.813 4.813 0 0 0 .151.477zm-2.48-1.621c.19-.48.343-.974.45-1.457.105-.48.128-.917.073-1.27a.506.506 0 0 0-.082-.23.326.326 0 0 0-.2-.127.425.425 0 0 0-.3.035.527.527 0 0 0-.276.361c-.044.196-.036.468.024.784.062.33.187.718.373 1.12.05.108.1.215.152.32.026.055.053.108.079.16l-.293.303z"/></svg>
+      Exportar PDF
+    </button>
+  </div>
+</div>
+
+<!-- Mode tabs -->
+<div class="mode-bar">
+  <button class="mode-tab active" id="tab-forward" onclick="setMode('forward')">
+    ¿Cuántas baterías necesito? → dado consumo y horas de respaldo
+  </button>
+  <button class="mode-tab" id="tab-reverse" onclick="setMode('reverse')">
+    ¿Cuántas horas de respaldo tengo? → dado banco existente
+  </button>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <!-- MODO FORWARD: controles -->
+    <div class="panel active" id="sidebar-forward">
+      <div>
+        <div class="chem-label">Química de batería</div>
+        <div class="chem-tabs">
+          <button class="chem-tab active" id="ftab-lfp" onclick="setQuim('lfp')">LiFePO₄</button>
+          <button class="chem-tab nmc"    id="ftab-nmc" onclick="setQuim('nmc')">NMC / NCA</button>
+          <button class="chem-tab gel"    id="ftab-gel" onclick="setQuim('gel')">Gel</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Consumo diario</span><span class="slider-value" id="f-lbl-consumo">29 kWh</span></div>
+          <input type="range" id="f-sl-consumo" min="1" max="200" step="1" value="29" oninput="calcForward()">
+          <div class="slider-minmax"><span>1 kWh</span><span>200 kWh</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Horas de respaldo</span><span class="slider-value" id="f-lbl-horas">2 h</span></div>
+          <input type="range" id="f-sl-horas" min="1" max="72" step="1" value="2" oninput="calcForward()">
+          <div class="slider-minmax"><span>1 h</span><span>72 h</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">DoD máximo</span><span class="slider-value" id="f-lbl-dod">80 %</span></div>
+          <input type="range" id="f-sl-dod" min="20" max="100" step="5" value="80" oninput="calcForward()">
+          <div class="slider-minmax"><span>20%</span><span>100%</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Eficiencia inversor</span><span class="slider-value" id="f-lbl-efic">95 %</span></div>
+          <input type="range" id="f-sl-efic" min="70" max="99" step="1" value="95" oninput="calcForward()">
+          <div class="slider-minmax"><span>70%</span><span>99%</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Voltaje del banco</span><span class="slider-value" id="f-lbl-volt">48 V</span></div>
+          <input type="range" id="f-sl-volt" min="12" max="120" step="12" value="48" oninput="calcForward()">
+          <div class="slider-minmax"><span>12V</span><span>120V</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Capacidad por batería</span><span class="slider-value" id="f-lbl-ah">100 Ah</span></div>
+          <input type="range" id="f-sl-ah" min="10" max="300" step="10" value="100" oninput="calcForward()">
+          <div class="slider-minmax"><span>10 Ah</span><span>300 Ah</span></div>
+        </div>
+      </div>
+      <div id="f-alert" class="alert alert-info" style="display:none"></div>
+    </div>
+
+    <!-- MODO REVERSE: controles -->
+    <div class="panel" id="sidebar-reverse">
+      <div>
+        <div class="chem-label">Química de batería</div>
+        <div class="chem-tabs">
+          <button class="chem-tab gel active" id="rtab-gel" onclick="setQuimR('gel')">Gel</button>
+          <button class="chem-tab active" id="rtab-lfp" onclick="setQuimR('lfp')" style="display:none">LiFePO₄</button>
+          <button class="chem-tab nmc" id="rtab-nmc" onclick="setQuimR('nmc')" style="display:none">NMC</button>
+        </div>
+        <div class="chem-tabs" style="margin-top:6px;">
+          <button class="chem-tab" id="rtab-lfp2" onclick="setQuimR('lfp')">LiFePO₄</button>
+          <button class="chem-tab nmc" id="rtab-nmc2" onclick="setQuimR('nmc')">NMC / NCA</button>
+          <button class="chem-tab gel" id="rtab-gel2" onclick="setQuimR('gel')">Gel</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Cantidad de baterías</span><span class="slider-value" id="r-lbl-nbat">20</span></div>
+          <input type="range" class="inv" id="r-sl-nbat" min="1" max="100" step="1" value="20" oninput="calcReverse()">
+          <div class="slider-minmax"><span>1</span><span>100</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Voltaje banco objetivo</span><span class="slider-value" id="r-lbl-volt">48 V</span></div>
+          <input type="range" class="inv" id="r-sl-volt" min="12" max="96" step="12" value="48" oninput="calcReverse()">
+          <div class="slider-minmax"><span>12V</span><span>96V</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Capacidad por batería</span><span class="slider-value" id="r-lbl-ah">100 Ah</span></div>
+          <input type="range" class="inv" id="r-sl-ah" min="10" max="300" step="10" value="100" oninput="calcReverse()">
+          <div class="slider-minmax"><span>10 Ah</span><span>300 Ah</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Consumo diario</span><span class="slider-value" id="r-lbl-consumo">29 kWh</span></div>
+          <input type="range" class="inv" id="r-sl-consumo" min="1" max="200" step="1" value="29" oninput="calcReverse()">
+          <div class="slider-minmax"><span>1 kWh</span><span>200 kWh</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">DoD máximo</span><span class="slider-value" id="r-lbl-dod">50 %</span></div>
+          <input type="range" class="inv" id="r-sl-dod" min="20" max="100" step="5" value="50" oninput="calcReverse()">
+          <div class="slider-minmax"><span>20%</span><span>100%</span></div>
+        </div>
+        <div class="slider-item">
+          <div class="slider-header"><span class="slider-name">Eficiencia inversor</span><span class="slider-value" id="r-lbl-efic">92 %</span></div>
+          <input type="range" class="inv" id="r-sl-efic" min="70" max="99" step="1" value="92" oninput="calcReverse()">
+          <div class="slider-minmax"><span>70%</span><span>99%</span></div>
+        </div>
+      </div>
+      <div id="r-alert" class="alert alert-blue" style="display:none"></div>
+    </div>
+
+  </aside>
+
+  <main class="main">
+
+    <!-- PANEL FORWARD -->
+    <div class="panel active" id="main-forward">
+      <div class="print-mode-label">Modo: ¿Cuántas baterías necesito?</div>
+      <div class="result-hero" id="f-hero">
+        <div class="result-big" id="f-r-kwh">—</div>
+        <div class="result-meta">
+          <div class="result-meta-title">kWh brutos necesarios en el banco</div>
+          <div class="result-meta-sub" id="f-r-sub">—</div>
+        </div>
+      </div>
+      <div class="steps-grid" id="f-steps"></div>
+      <div class="config-card">
+        <div class="config-card-header">Configuración del banco resultante</div>
+        <div id="f-config"></div>
+      </div>
+      <div class="compare-strip">
+        <div class="compare-title">Comparativa de químicas — kWh brutos necesarios</div>
+        <div class="compare-bars" id="f-compare"></div>
+      </div>
+    </div>
+
+    <!-- PANEL REVERSE -->
+    <div class="panel" id="main-reverse">
+      <div class="print-mode-label">Modo: ¿Cuántas horas de respaldo tengo?</div>
+      <div class="result-hero inv" id="r-hero">
+        <div class="result-big inv" id="r-r-horas">—</div>
+        <div class="result-meta">
+          <div class="result-meta-title">Horas de respaldo disponibles</div>
+          <div class="result-meta-sub" id="r-r-sub">—</div>
+        </div>
+      </div>
+      <div class="steps-grid" id="r-steps"></div>
+      <div class="config-card">
+        <div class="config-card-header">Resumen del banco ingresado</div>
+        <div id="r-config"></div>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-title">Comparativa de horas según química</div>
+        <div id="r-gauge"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="footer">
+  <span>Calculadora banco de baterías · dimensionamiento de respaldo energético</span>
+  <span id="footer-info">LiFePO₄ — DoD 80% — eficiencia 95%</span>
+</div>
+
+<script>
+const QD = {
+  lfp: {dod:80, efic:95, label:'LiFePO₄ (LFP)', ciclos:'3000–6000 ciclos', cls:''},
+  nmc: {dod:80, efic:96, label:'NMC / NCA',      ciclos:'1000–2000 ciclos', cls:'nmc'},
+  gel: {dod:50, efic:92, label:'Gel plomo-ácido', ciclos:'400–800 ciclos',   cls:'gel'},
+};
+
+let mode = 'forward';
+let quimF = 'lfp';
+let quimR = 'gel';
+
+function fmt(n, d=2){ return parseFloat(n.toFixed(d)); }
+
+function setMode(m) {
+  mode = m;
+  ['forward','reverse'].forEach(k => {
+    document.getElementById('tab-'+k).classList.toggle('active', k===m);
+    document.getElementById('sidebar-'+k).classList.toggle('active', k===m);
+    document.getElementById('main-'+k).classList.toggle('active', k===m);
+  });
+}
+
+function setQuim(q) {
+  quimF = q;
+  ['lfp','nmc','gel'].forEach(k => document.getElementById('ftab-'+k).classList.toggle('active', k===q));
+  document.getElementById('f-sl-dod').value  = QD[q].dod;
+  document.getElementById('f-sl-efic').value = QD[q].efic;
+  calcForward();
+}
+
+function setQuimR(q) {
+  quimR = q;
+  ['lfp2','nmc2','gel2'].forEach(k => document.getElementById('rtab-'+k).classList.toggle('active', k.replace('2','')==q || k===q+'2'));
+  document.getElementById('r-sl-dod').value  = QD[q].dod;
+  document.getElementById('r-sl-efic').value = QD[q].efic;
+  calcReverse();
+}
+
+// Inicializar tabs reverse correctamente
+['lfp2','nmc2','gel2'].forEach(k => {
+  const q = k.replace('2','');
+  document.getElementById('rtab-'+k).className = 'chem-tab ' + (q==='gel'?'gel ':q==='nmc'?'nmc ':'') + (q==='gel'?'active':'');
+});
+
+function calcForward() {
+  const consumo = +document.getElementById('f-sl-consumo').value;
+  const horas   = +document.getElementById('f-sl-horas').value;
+  const dod     = +document.getElementById('f-sl-dod').value;
+  const efic    = +document.getElementById('f-sl-efic').value;
+  const volt    = +document.getElementById('f-sl-volt').value;
+  const ahUnit  = +document.getElementById('f-sl-ah').value;
+
+  document.getElementById('f-lbl-consumo').textContent = consumo + ' kWh';
+  document.getElementById('f-lbl-horas').textContent   = horas + ' h';
+  document.getElementById('f-lbl-dod').textContent     = dod + ' %';
+  document.getElementById('f-lbl-efic').textContent    = efic + ' %';
+  document.getElementById('f-lbl-volt').textContent    = volt + ' V';
+  document.getElementById('f-lbl-ah').textContent      = ahUnit + ' Ah';
+
+  const potMedia    = consumo / 24;
+  const kwhUtil     = potMedia * horas;
+  const kwhInversor = kwhUtil / (efic / 100);
+  const kwhBrutos   = kwhInversor / (dod / 100);
+  const ahNec       = (kwhBrutos * 1000) / volt;
+  const batsXStr    = Math.round(volt / 12);
+  const stringsNec  = Math.ceil(ahNec / ahUnit);
+  const ahReal      = stringsNec * ahUnit;
+  const kwhReal     = (volt * ahReal) / 1000;
+  const kwhUtilReal = kwhReal * (dod/100) * (efic/100);
+  const batTotal    = stringsNec * batsXStr;
+
+  const cls = QD[quimF].cls;
+
+  document.getElementById('f-r-kwh').textContent = fmt(kwhBrutos,1) + ' kWh';
+  document.getElementById('f-r-kwh').className = 'result-big ' + cls;
+  document.getElementById('f-hero').className = 'result-hero ' + cls;
+  document.getElementById('f-r-sub').textContent =
+    fmt(kwhUtil,3) + ' kWh útiles  ·  eficiencia ' + efic + '%  ·  DoD ' + dod + '%';
+
+  document.getElementById('f-steps').innerHTML = `
+    <div class="step-card">
+      <div class="step-n">Paso 1</div>
+      <div class="step-title">Potencia media consumida</div>
+      <div class="step-formula">${consumo} kWh ÷ 24 h = ${fmt(potMedia,4)} kW</div>
+      <div class="step-result ${cls}">${fmt(potMedia,3)} kW</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">Paso 2</div>
+      <div class="step-title">Energía útil para ${horas}h</div>
+      <div class="step-formula">${fmt(potMedia,4)} × ${horas} h = ${fmt(kwhUtil,4)} kWh</div>
+      <div class="step-result ${cls}">${fmt(kwhUtil,3)} kWh útiles</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">Paso 3</div>
+      <div class="step-title">Ajuste eficiencia inversor (${efic}%)</div>
+      <div class="step-formula">${fmt(kwhUtil,4)} ÷ ${fmt(efic/100,2)} = ${fmt(kwhInversor,4)} kWh</div>
+      <div class="step-result ${cls}">${fmt(kwhInversor,3)} kWh del banco</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">Paso 4</div>
+      <div class="step-title">Ajuste DoD ${dod}% (${QD[quimF].label})</div>
+      <div class="step-formula">${fmt(kwhInversor,4)} ÷ ${fmt(dod/100,2)} = ${fmt(kwhBrutos,4)} kWh</div>
+      <div class="step-result ${cls}">${fmt(kwhBrutos,2)} kWh brutos</div>
+    </div>`;
+
+  document.getElementById('f-config').innerHTML = `
+    <div class="config-row"><span class="ck">Química</span><span class="cv">${QD[quimF].label} — ${QD[quimF].ciclos}</span></div>
+    <div class="config-row"><span class="ck">Voltaje del banco</span><span class="cv">${volt} V</span></div>
+    <div class="config-row"><span class="ck">Ah mínimos necesarios</span><span class="cv">${fmt(ahNec,0)} Ah</span></div>
+    <div class="config-row"><span class="ck">Strings necesarios</span><span class="cv">${stringsNec} string${stringsNec>1?'s':''} (${ahUnit} Ah c/u)</span></div>
+    <div class="config-row hl ${cls}"><span class="ck">Baterías 12V ${ahUnit}Ah requeridas</span><span class="cv">${batTotal} baterías (${stringsNec} × ${batsXStr})</span></div>
+    <div class="config-row"><span class="ck">Banco resultante</span><span class="cv">${volt}V / ${ahReal}Ah / ${fmt(kwhReal,1)} kWh</span></div>
+    <div class="config-row hl ${cls}"><span class="ck">Respaldo real entregado</span><span class="cv">${fmt(kwhUtilReal,2)} kWh útiles</span></div>`;
+
+  const kLfp = (kwhUtil/0.95)/0.80;
+  const kNmc = (kwhUtil/0.96)/0.80;
+  const kGel = (kwhUtil/0.92)/0.50;
+  const maxK = Math.max(kLfp,kNmc,kGel);
+  document.getElementById('f-compare').innerHTML = `
+    <div class="bar-row"><span class="bar-label">LFP</span><div class="bar-track"><div class="bar-fill bar-lfp" style="width:${fmt(kLfp/maxK*100,1)}%"></div></div><span class="bar-val">${fmt(kLfp,2)} kWh</span></div>
+    <div class="bar-row"><span class="bar-label">NMC</span><div class="bar-track"><div class="bar-fill bar-nmc" style="width:${fmt(kNmc/maxK*100,1)}%"></div></div><span class="bar-val">${fmt(kNmc,2)} kWh</span></div>
+    <div class="bar-row"><span class="bar-label">Gel</span><div class="bar-track"><div class="bar-fill bar-gel" style="width:${fmt(kGel/maxK*100,1)}%"></div></div><span class="bar-val">${fmt(kGel,2)} kWh</span></div>`;
+
+  const al = document.getElementById('f-alert');
+  let msg='', alCls='alert-info';
+  if(dod>80&&quimF!=='gel'){msg='⚠  DoD > 80% acorta vida útil incluso en litio. Recomendado máximo 80% para ciclos diarios.';alCls='alert-warn';}
+  else if(dod>50&&quimF==='gel'){msg='⚠  Gel con DoD > 50% se degrada rápidamente. Máximo recomendado: 50%.';alCls='alert-warn';}
+  else if(quimF==='lfp'){msg='✓  LFP recomendado para instalaciones fijas con Victron. Compatible con Cerbo GX nativo.';alCls='alert-info';}
+  al.className='alert '+alCls; al.textContent=msg; al.style.display=msg?'block':'none';
+  document.getElementById('footer-info').textContent = QD[quimF].label+' — DoD '+dod+'% — eficiencia '+efic+'%';
+}
+
+function calcReverse() {
+  const nBat    = +document.getElementById('r-sl-nbat').value;
+  const volt    = +document.getElementById('r-sl-volt').value;
+  const ahUnit  = +document.getElementById('r-sl-ah').value;
+  const consumo = +document.getElementById('r-sl-consumo').value;
+  const dod     = +document.getElementById('r-sl-dod').value;
+  const efic    = +document.getElementById('r-sl-efic').value;
+
+  document.getElementById('r-lbl-nbat').textContent    = nBat;
+  document.getElementById('r-lbl-volt').textContent    = volt + ' V';
+  document.getElementById('r-lbl-ah').textContent      = ahUnit + ' Ah';
+  document.getElementById('r-lbl-consumo').textContent = consumo + ' kWh';
+  document.getElementById('r-lbl-dod').textContent     = dod + ' %';
+  document.getElementById('r-lbl-efic').textContent    = efic + ' %';
+
+  // Configuración del banco
+  const batsXStr  = Math.round(volt / 12);
+  const strings   = Math.floor(nBat / batsXStr);
+  const batsUsadas= strings * batsXStr;
+  const batasSob  = nBat - batsUsadas;
+  const ahBanco   = strings * ahUnit;
+  const kwhBrutos = (volt * ahBanco) / 1000;
+
+  // Horas de respaldo
+  const kwhUtil   = kwhBrutos * (dod/100) * (efic/100);
+  const potMedia  = consumo / 24;
+  const horas     = strings > 0 ? kwhUtil / potMedia : 0;
+  const horasH    = Math.floor(horas);
+  const minutos   = Math.round((horas - horasH) * 60);
+
+  document.getElementById('r-r-horas').textContent = fmt(horas,1) + ' h';
+  document.getElementById('r-r-sub').textContent =
+    kwhBrutos.toFixed(2)+' kWh brutos  ·  '+kwhUtil.toFixed(2)+' kWh útiles  ·  '+horasH+'h '+minutos+'min exactos';
+
+  document.getElementById('r-steps').innerHTML = `
+    <div class="step-card">
+      <div class="step-n">Paso 1</div>
+      <div class="step-title">Capacidad del banco</div>
+      <div class="step-formula">${volt}V × ${ahBanco}Ah ÷ 1000 = ${fmt(kwhBrutos,3)} kWh</div>
+      <div class="step-result inv">${fmt(kwhBrutos,2)} kWh brutos</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">Paso 2</div>
+      <div class="step-title">Energía útil disponible</div>
+      <div class="step-formula">${fmt(kwhBrutos,3)} × ${fmt(dod/100,2)} × ${fmt(efic/100,2)} = ${fmt(kwhUtil,4)} kWh</div>
+      <div class="step-result inv">${fmt(kwhUtil,3)} kWh útiles</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">Paso 3</div>
+      <div class="step-title">Potencia media consumida</div>
+      <div class="step-formula">${consumo} kWh ÷ 24 h = ${fmt(potMedia,4)} kW</div>
+      <div class="step-result inv">${fmt(potMedia,3)} kW promedio</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">Paso 4</div>
+      <div class="step-title">Horas de respaldo</div>
+      <div class="step-formula">${fmt(kwhUtil,4)} kWh ÷ ${fmt(potMedia,4)} kW = ${fmt(horas,4)} h</div>
+      <div class="step-result inv">${fmt(horas,2)} h (${horasH}h ${minutos}min)</div>
+    </div>`;
+
+  const sobBadge = batasSob>0 ? `<span class="badge badge-a">${batasSob} no usadas</span>` : '';
+  document.getElementById('r-config').innerHTML = `
+    <div class="config-row"><span class="ck">Química</span><span class="cv">${QD[quimR].label}</span></div>
+    <div class="config-row"><span class="ck">Baterías ingresadas</span><span class="cv">${nBat} × 12V ${ahUnit}Ah</span></div>
+    <div class="config-row"><span class="ck">Baterías por string (${volt}V)</span><span class="cv">${batsXStr} en serie</span></div>
+    <div class="config-row hl inv"><span class="ck">Strings posibles</span><span class="cv">${strings} strings — ${batsUsadas} baterías usadas ${sobBadge}</span></div>
+    <div class="config-row"><span class="ck">Banco configurado</span><span class="cv">${volt}V / ${ahBanco}Ah / ${fmt(kwhBrutos,1)} kWh</span></div>
+    <div class="config-row hl inv"><span class="ck">Energía útil (DoD ${dod}%)</span><span class="cv">${fmt(kwhUtil,2)} kWh</span></div>`;
+
+  // Gauge comparativa químicas
+  const hLfp = ((volt*ahBanco/1000)*(0.80)*(0.95)) / potMedia;
+  const hNmc = ((volt*ahBanco/1000)*(0.80)*(0.96)) / potMedia;
+  const hGel = ((volt*ahBanco/1000)*(0.50)*(0.92)) / potMedia;
+  const maxH = Math.max(hLfp,hNmc,hGel);
+  document.getElementById('r-gauge').innerHTML = `
+    <div class="compare-bars">
+      <div class="bar-row"><span class="bar-label">LFP</span><div class="bar-track"><div class="bar-fill bar-lfp" style="width:${fmt(hLfp/maxH*100,1)}%"></div></div><span class="bar-val">${fmt(hLfp,1)} h</span></div>
+      <div class="bar-row"><span class="bar-label">NMC</span><div class="bar-track"><div class="bar-fill bar-nmc" style="width:${fmt(hNmc/maxH*100,1)}%"></div></div><span class="bar-val">${fmt(hNmc,1)} h</span></div>
+      <div class="bar-row"><span class="bar-label">Gel</span><div class="bar-track"><div class="bar-fill bar-gel" style="width:${fmt(hGel/maxH*100,1)}%"></div></div><span class="bar-val">${fmt(hGel,1)} h</span></div>
+    </div>`;
+
+  const al = document.getElementById('r-alert');
+  let msg = strings===0
+    ? '⚠  Con ese voltaje de banco necesitás al menos '+batsXStr+' baterías para formar 1 string.'
+    : '✓  Con '+batsUsadas+' baterías en '+strings+' string'+( strings>1?'s':'')+' de '+batsXStr+', el banco entrega '+fmt(horas,2)+' h de respaldo.';
+  al.className = 'alert ' + (strings===0 ? 'alert-warn' : 'alert-blue');
+  al.textContent = msg; al.style.display = 'block';
+}
+
+function exportPDF() {
+  window.print();
+}
+
+// Init
+calcForward();
+calcReverse();
+</script>
+</body>
+</html>
